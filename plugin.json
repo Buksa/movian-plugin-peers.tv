@@ -1,0 +1,15 @@
+{
+    "type": "ecmascript",
+    "apiversion": 1,
+    "id": "peers.tv",
+    "file": "peers.tv.js",
+    "showtimeVersion": "4.8",
+    "version": "0.3",
+    "author": "Buksa",
+    "title": "Peers.tv",
+    "icon": "logo.png",
+    "synopsis": "a few tv channels in Russian",
+    "description": "<p>Peers.TV — это бесплатное онлайн‑телевидение, с которым можно смотреть эфирное ТВ и в записи: передачи множества телеканалов доступны в прямом эфире и в недельном архиве передач, без подписки и в хорошем качестве. <p>",
+    "category": "tv",
+    "homepage": "https://github.com/Buksa/plugins_for_showtime/"
+}
