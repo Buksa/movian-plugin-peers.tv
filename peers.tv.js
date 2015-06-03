@@ -16,8 +16,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.3
+// Version 0.3.1
 //
+
+var http = require('showtime/http');
+
 (function(plugin) {
     var plugin_info = plugin.getDescriptor();
     var PREFIX = plugin_info.id;
@@ -62,7 +65,7 @@
         page.metadata.logo = plugin.path + logo;
         page.type = "directory";
         page.contents = "items"
-        //var respond = showtime.httpReq('http://api.peers.tv/registry/2/whereami.json').toString();
+        //var respond = http.request('http://api.peers.tv/registry/2/whereami.json').toString();
         //p('respond:' + respond)
 
         //ch_list(page,getChannels(BASE_URL))
@@ -72,7 +75,7 @@
     }
 
     function getChannels(url) {
-        var respond = showtime.httpReq(url).toString();
+        var respond = http.request(url).toString();
         
         var re = /"id": (\d+).*?"url": "(.*?)","title": "(.*?)","href": "(.*?)".*?"logo_large": "(.*?)".*?"magnet": "(.*?)","stream": "(.*?)"/g
         var channels = [],
@@ -97,7 +100,7 @@
     }
 
     function ShowChannelList(page, url) {
-        var respond = showtime.httpReq(url).toString();
+        var respond = http.request(url).toString();
         var data = {}
 
         data.date =   date()
@@ -109,17 +112,17 @@
             m = re.execAll(respond);
             
             for (i = 0; i < m.length; i++) {
+                //p(i)
                 item = JSON.parse(m[i][0])
+               // p(item)
                 data.liveurl = item.stream
                 data.channelId = item.id
 
         
                 page.appendItem(PREFIX + ":arhivdate:" + escape(JSON.stringify(data)), 'video', {
                 title: item.title,
-                icon: 'http:'+item.logo.apps.src.toString()
-            })
-                p(i+': '+item.logo.medium.src.toString())
-                p(data)
+                icon: item.logo.apps ? 'http:'+item.logo.apps.src : logo
+                })
             }
 
 
@@ -134,7 +137,7 @@
         page.type = "directory";
         page.contents = "items"
         page.loading = true;
-        var respond = showtime.httpReq('http://peers.tv/ajax/program/' + data.channelId + '/' + data.date + '/',{method: 'POST'}).toString();
+        var respond = http.request('http://peers.tv/ajax/program/' + data.channelId + '/' + data.date + '/',{method: 'POST'}).toString();
             page.appendItem(data.liveurl, 'video', {
                 title: new showtime.RichText('live'),
                 description: new showtime.RichText('live'),
@@ -211,9 +214,34 @@
         }
     }
 
-    function p(msg) {
-        service.debug && ("object" === typeof msg && (msg = "### object ###\n" + JSON.stringify(msg) + "\n### object ###"), showtime.print(msg))
-    };
+    function p(message) {
+        if (service.debug == '1') {
+            print(message);
+            if (typeof(message) === 'object') print(dump(message));
+        }
+    }
+
+    function dump(arr, level) {
+        var dumped_text = "";
+        if (!level) level = 0;
+        //The padding given at the beginning of the line.
+        var level_padding = "";
+        for (var j = 0; j < level + 1; j++) level_padding += "    ";
+        if (typeof(arr) == 'object') { //Array/Hashes/Objects
+            for (var item in arr) {
+                var value = arr[item];
+                if (typeof(value) == 'object') { //If it is an array,
+                    dumped_text += level_padding + "'" + item + "' ...\n";
+                    dumped_text += dump(value, level + 1);
+                } else {
+                    dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+                }
+            }
+        } else { //Stings/Chars/Numbers etc.
+            dumped_text = arr;
+        }
+        return dumped_text;
+    }
 
     plugin.addURI(PREFIX + ":start", startPage);
     plugin.addURI(PREFIX + ":arhivdate:(.*)", ArhivDates)
@@ -221,15 +249,16 @@
     
     
         // Add to RegExp prototype
-    RegExp.prototype.execAll = function(e) {
-        for (var c = [], b = null; null !== (b = this.exec(e));) {
-            var d = [],
-                a;
-            for (a in b) {
-                parseInt(a, 10) == a && d.push(b[a]);
-            }
-            c.push(d);
-        }
-        return c;
-    };
+	RegExp.prototype.execAll = function(str) {
+		var match = null
+		for (var matches = []; null !== (match = this.exec(str));) {
+			var matchArray = [],i;
+			for (i in match) {
+				parseInt(i, 10) == i && matchArray.push(match[i]);
+			}
+			matches.push(matchArray);
+		}
+		if (this.exec(str) == null) return null
+		return matches;
+	};
 })(this);
