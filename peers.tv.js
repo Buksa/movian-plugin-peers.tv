@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.3.1
+// Version 0.3.2
 //
 
 var http = require('showtime/http');
@@ -55,9 +55,11 @@ var http = require('showtime/http');
     });
     plugin.addHTTPAuth(".*tvstream.cn.ru.*", function(authreq) {
         authreq.setHeader("Referer", 'http://peers.tv/');
+
     });
-
-
+    plugin.addHTTPAuth("http:.*peers\\.tv.*", function(authreq) {
+        authreq.setHeader("User-Agent", 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
+    });
 
 
     function startPage(page) {
@@ -76,7 +78,7 @@ var http = require('showtime/http');
 
     function getChannels(url) {
         var respond = http.request(url).toString();
-        
+
         var re = /"id": (\d+).*?"url": "(.*?)","title": "(.*?)","href": "(.*?)".*?"logo_large": "(.*?)".*?"magnet": "(.*?)","stream": "(.*?)"/g
         var channels = [],
             i = 0
@@ -103,27 +105,36 @@ var http = require('showtime/http');
         var respond = http.request(url).toString();
         var data = {}
 
-        data.date =   date()
-      function date(){now=new Date;year=""+now.getFullYear();month=""+(now.getMonth()+1);1==month.length&&(month="0"+month);day=""+now.getDate();1==day.length&&(day="0"+day);return year+"-"+month+"-"+day};
+        data.date = date()
+
+        function date() {
+            now = new Date;
+            year = "" + now.getFullYear();
+            month = "" + (now.getMonth() + 1);
+            1 == month.length && (month = "0" + month);
+            day = "" + now.getDate();
+            1 == day.length && (day = "0" + day);
+            return year + "-" + month + "-" + day
+        };
         p(data.date)
-            var re = /(\{"id": \d+,"url": ".*","title":.*?stream.*\})/g
-            //var re = new RegExp('"id": (\\d+),"url": "(.*)","title":.*}','g')
+        var re = /(\{"id": \d+,"url": ".*","title":.*?stream.*\})/g
+        //var re = new RegExp('"id": (\\d+),"url": "(.*)","title":.*}','g')
 
-            m = re.execAll(respond);
-            
-            for (i = 0; i < m.length; i++) {
-                //p(i)
-                item = JSON.parse(m[i][0])
-               // p(item)
-                data.liveurl = item.stream
-                data.channelId = item.id
+        m = re.execAll(respond);
 
-        
-                page.appendItem(PREFIX + ":arhivdate:" + escape(JSON.stringify(data)), 'video', {
+        for (i = 0; i < m.length; i++) {
+            //p(i)
+            item = JSON.parse(m[i][0])
+            // p(item)
+            data.liveurl = item.stream
+            data.channelId = item.id
+
+
+            page.appendItem(PREFIX + ":arhivdate:" + escape(JSON.stringify(data)), 'video', {
                 title: item.title,
-                icon: item.logo.apps ? 'http:'+item.logo.apps.src : logo
-                })
-            }
+                icon: item.logo.apps ? 'http:' + item.logo.apps.src : logo
+            })
+        }
 
 
 
@@ -137,14 +148,20 @@ var http = require('showtime/http');
         page.type = "directory";
         page.contents = "items"
         page.loading = true;
-        var respond = http.request('http://peers.tv/ajax/program/' + data.channelId + '/' + data.date + '/',{method: 'POST'}).toString();
-            page.appendItem(data.liveurl, 'video', {
-                title: new showtime.RichText('live'),
-                description: new showtime.RichText('live'),
-                icon: logo
-            });
+        var respond = http.request('http://peers.tv/ajax/program/' + data.channelId + '/' + data.date + '/', {
+            method: 'POST'
+        }).toString();
+        //    plugin.addHTTPAuth("http:.*peers\\.tv.*", function(authreq) {
+        //    authreq.setHeader("User-Agent", 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
+        //});
+
+        page.appendItem(data.liveurl, 'video', {
+            title: new showtime.RichText('live'),
+            description: new showtime.RichText('live'),
+            icon: logo
+        });
         var jsonResp = JSON.parse(respond)
-        
+
         for (i in jsonResp.week) {
             if (jsonResp.week[i].recs) {
                 data.date = jsonResp.week[i].href.match(/(\d{4}-\d{2}-\d{2})/)[1]
@@ -158,12 +175,12 @@ var http = require('showtime/http');
 
 
         }
- 
+
         //  
         for (i in jsonResp.telecasts) {
             item = jsonResp.telecasts[i]
             p(item)
-           
+
             try {
                 onair = item.onair
             } catch (e) {
@@ -176,9 +193,10 @@ var http = require('showtime/http');
             }
             if (movie) {
                 color = '#0b94f3'
-                
-            } else {color = '#a6a6a6'
-            movie = data.liveurl
+
+            } else {
+                color = '#a6a6a6'
+                movie = data.liveurl
             }
             if (onair) {
                 color = '#92cd00';
@@ -189,14 +207,14 @@ var http = require('showtime/http');
 
 
 
-            page.appendItem(movie, 'video', {
+            page.appendItem(movie + '|User-Agent=Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0', 'video', {
                 title: new showtime.RichText('<font color="' + color + '">[' + item.time.substring(11, 16) + "-" + item.ends.substring(11, 16) + '] ' + item.title + '</font>'),
                 description: new showtime.RichText(item.desc),
                 icon: 'http:' + item.image
             });
 
         }
-    page.loading = false;    
+        page.loading = false;
     }
 
 
@@ -246,19 +264,20 @@ var http = require('showtime/http');
     plugin.addURI(PREFIX + ":start", startPage);
     plugin.addURI(PREFIX + ":arhivdate:(.*)", ArhivDates)
 
-    
-    
-        // Add to RegExp prototype
-	RegExp.prototype.execAll = function(str) {
-		var match = null
-		for (var matches = []; null !== (match = this.exec(str));) {
-			var matchArray = [],i;
-			for (i in match) {
-				parseInt(i, 10) == i && matchArray.push(match[i]);
-			}
-			matches.push(matchArray);
-		}
-		if (this.exec(str) == null) return null
-		return matches;
-	};
+
+
+    // Add to RegExp prototype
+    RegExp.prototype.execAll = function(str) {
+        var match = null
+        for (var matches = []; null !== (match = this.exec(str));) {
+            var matchArray = [],
+                i;
+            for (i in match) {
+                parseInt(i, 10) == i && matchArray.push(match[i]);
+            }
+            matches.push(matchArray);
+        }
+        if (this.exec(str) == null) return null
+        return matches;
+    };
 })(this);
