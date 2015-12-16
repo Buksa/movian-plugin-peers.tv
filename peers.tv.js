@@ -16,10 +16,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.3.2
+// Version 0.3.3
 //
 
 var http = require('showtime/http');
+var io = require('native/io');
+
+var x = http.request('https://www.google.com/', {
+  debug: true
+});
 
 (function(plugin) {
     var plugin_info = plugin.getDescriptor();
@@ -53,22 +58,35 @@ var http = require('showtime/http');
     settings.createBool("debug", "Debug", false, function(v) {
         service.debug = v;
     });
-    plugin.addHTTPAuth(".*tvstream.cn.ru.*", function(authreq) {
-        authreq.setHeader("Referer", 'http://peers.tv/');
 
-    });
-    plugin.addHTTPAuth("http:.*peers\\.tv.*", function(authreq) {
-        authreq.setHeader("User-Agent", 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
-    });
-
-
+    //plugin.addHTTPAuth("http.*peers.tv/streaming.*|http.*peers.tv/playlist.*", function(authreq) {
+    //    authreq.setHeader('User-Agent', 'VLC/2.2.1 LibVLC/2.2.1');
+    //    authreq.setHeader('User-Agent', 'Referer: http://peers.tv/jwplayer/jwplayer.flash.swf');
+    //});
+        
+io.httpInspectorCreate('http.*peers.tv.*', function(req) {
+  req.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
+  });
+    //plugin.addHTTPAuth("http.*peers.tv.*", function(authreq) {
+    //    authreq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
+    //   // authreq.setHeader('User-Agent', 'Referer: http://peers.tv/jwplayer/jwplayer.flash.swf');
+    //});
+    
+    
     function startPage(page) {
         page.metadata.title = "Peers.tv : Список Каналов";
         page.metadata.logo = plugin.path + logo;
         page.type = "directory";
         page.contents = "items"
-        //var respond = http.request('http://api.peers.tv/registry/2/whereami.json').toString();
-        //p('respond:' + respond)
+        p(plugin.path + logo)
+        var respond = http.request('http://api.peers.tv/registry/2/whereami.json',{
+            debug: service.debug,
+            method: 'GET',
+                headers: {
+                "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
+	    }
+        }).toString();
+        p('respond:' + respond)
 
         //ch_list(page,getChannels(BASE_URL))
         ShowChannelList(page, BASE_URL)
@@ -77,7 +95,13 @@ var http = require('showtime/http');
     }
 
     function getChannels(url) {
-        var respond = http.request(url).toString();
+        var respond = http.request(url,{
+            debug: service.debug,
+            method: 'GET',
+                headers: {
+                "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
+	    }
+        }).toString();
 
         var re = /"id": (\d+).*?"url": "(.*?)","title": "(.*?)","href": "(.*?)".*?"logo_large": "(.*?)".*?"magnet": "(.*?)","stream": "(.*?)"/g
         var channels = [],
@@ -102,7 +126,13 @@ var http = require('showtime/http');
     }
 
     function ShowChannelList(page, url) {
-        var respond = http.request(url).toString();
+        var respond = http.request(url,{
+            debug: service.debug,
+            method: 'GET',
+                headers: {
+                "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
+	    }
+        }).toString();
         var data = {}
 
         data.date = date()
@@ -149,13 +179,13 @@ var http = require('showtime/http');
         page.contents = "items"
         page.loading = true;
         var respond = http.request('http://peers.tv/ajax/program/' + data.channelId + '/' + data.date + '/', {
-            method: 'POST'
+            debug: service.debug,
+            method: 'POST',
+            headers: {
+                "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
+	    }
         }).toString();
-        //    plugin.addHTTPAuth("http:.*peers\\.tv.*", function(authreq) {
-        //    authreq.setHeader("User-Agent", 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
-        //});
-
-        page.appendItem(data.liveurl, 'video', {
+        page.appendItem('hls:'+data.liveurl, 'video', {
             title: new showtime.RichText('live'),
             description: new showtime.RichText('live'),
             icon: logo
@@ -207,7 +237,7 @@ var http = require('showtime/http');
 
 
 
-            page.appendItem(movie + '|User-Agent=Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0', 'video', {
+            page.appendItem('hls:'+movie, 'video', {
                 title: new showtime.RichText('<font color="' + color + '">[' + item.time.substring(11, 16) + "-" + item.ends.substring(11, 16) + '] ' + item.title + '</font>'),
                 description: new showtime.RichText(item.desc),
                 icon: 'http:' + item.image
