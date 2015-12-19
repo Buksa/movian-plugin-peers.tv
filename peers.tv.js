@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.3.3
+// Version 0.3.4
 //
 
 var http = require('showtime/http');
@@ -64,7 +64,7 @@ var x = http.request('https://www.google.com/', {
     //    authreq.setHeader('User-Agent', 'Referer: http://peers.tv/jwplayer/jwplayer.flash.swf');
     //});
         
-io.httpInspectorCreate('http.*peers.tv.*', function(req) {
+io.httpInspectorCreate('http.*\\.peers.tv.*', function(req) {
   req.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
   });
     //plugin.addHTTPAuth("http.*peers.tv.*", function(authreq) {
