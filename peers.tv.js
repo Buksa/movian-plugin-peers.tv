@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.4.0
+// Version 0.4.1
 //
 var plugin = JSON.parse(Plugin.manifest);
 var PREFIX = plugin.id;
@@ -70,10 +70,18 @@ io.httpInspectorCreate('http.*\\.peers.tv.*', function(req) {
     req.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
 });
 
+var date = function(){
+    now = new Date;
+    year = "" + now.getFullYear();
+    month = "" + (now.getMonth() + 1);
+    1 == month.length && (month = "0" + month);
+    day = "" + now.getDate();
+    1 == day.length && (day = "0" + day);
+    return year + "-" + month + "-" + day
+};
 
-new page.Route(PREFIX + ":start", startPage);
-
-function startPage(page) {
+p(date)
+new page.Route(PREFIX + ":start", function (page) {
     page.metadata.title = "Peers.tv : Список Каналов";
     page.metadata.logo = ICON;
     page.type = "directory";
@@ -85,10 +93,11 @@ function startPage(page) {
             "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
         }
     }).toString();
-    p(resp)
+  //  p(resp)
     items = []
     regExp = /(\{"id":.+?\d+,"url[\s\S]+?stream[\s\S]+?\})/g;
     date = date()
+    p(date)
     while (((m = regExp.exec(resp)) !== null)) {
 
         item = /"id".+?(\d+).+?title.+?"([^"]+).+?src.+?"([^"]+).+?"stream.+?"([^"]+)/.exec(m)
@@ -112,11 +121,9 @@ function startPage(page) {
 
     page.loading = false;
 
-}
+});
 
-new page.Route(PREFIX + ":arhivdate:(.*)", ArhivDates)
-
-function ArhivDates(page, data) {
+new page.Route(PREFIX + ":arhivdate:(.*)", function (page, data) {
     data = JSON.parse(data);
     p(dump(data))
     page.metadata.title = "Peers.tv : Программа Канала за " + data.date;
@@ -141,7 +148,8 @@ function ArhivDates(page, data) {
     for (i in jsonResp.week) {
         if (jsonResp.week[i].recs) {
             data.date = jsonResp.week[i].href.match(/(\d{4}-\d{2}-\d{2})/)[1]
-            page.appendItem(PREFIX + ":arhivdate:" + escape(JSON.stringify(data)), 'directory', {
+            p(dump(data))
+            page.appendItem(PREFIX + ":arhivdate:" + JSON.stringify(data), 'directory', {
                 title: new showtime.RichText(jsonResp.week[i].date),
                 description: new showtime.RichText(jsonResp.week[i].date),
                 icon: data.icon
@@ -191,17 +199,9 @@ function ArhivDates(page, data) {
 
     }
     page.loading = false;
-}
+});
 
-function date() {
-    now = new Date;
-    year = "" + now.getFullYear();
-    month = "" + (now.getMonth() + 1);
-    1 == month.length && (month = "0" + month);
-    day = "" + now.getDate();
-    1 == day.length && (day = "0" + day);
-    return year + "-" + month + "-" + day
-};
+
 
 
 function p(message) {
