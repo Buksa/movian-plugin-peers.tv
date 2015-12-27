@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.4.1
+// Version 0.4.2
 //
 var plugin = JSON.parse(Plugin.manifest);
 var PREFIX = plugin.id;
@@ -70,7 +70,7 @@ io.httpInspectorCreate('http.*\\.peers.tv.*', function(req) {
     req.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
 });
 
-var date = function(){
+function date(){
     now = new Date;
     year = "" + now.getFullYear();
     month = "" + (now.getMonth() + 1);
@@ -80,11 +80,11 @@ var date = function(){
     return year + "-" + month + "-" + day
 };
 
-p(date)
 new page.Route(PREFIX + ":start", function (page) {
     page.metadata.title = "Peers.tv : Список Каналов";
     page.metadata.logo = ICON;
     page.type = "directory";
+    var d 
     //http://api.peers.tv/peerstv/xml/1/
     var resp = http.request('http://peers.tv', {
         debug: service.debug,
@@ -96,8 +96,6 @@ new page.Route(PREFIX + ":start", function (page) {
   //  p(resp)
     items = []
     regExp = /(\{"id":.+?\d+,"url[\s\S]+?stream[\s\S]+?\})/g;
-    date = date()
-    p(date)
     while (((m = regExp.exec(resp)) !== null)) {
 
         item = /"id".+?(\d+).+?title.+?"([^"]+).+?src.+?"([^"]+).+?"stream.+?"([^"]+)/.exec(m)
@@ -106,7 +104,7 @@ new page.Route(PREFIX + ":start", function (page) {
             title: item[2],
             icon: 'http:' + item[3],
             stream: item[4].replace(/\\\//g, "/"),
-            date: date
+            date: date()
         })
     }
 
