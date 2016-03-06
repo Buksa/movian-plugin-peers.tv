@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.4.3
+// Version 0.4.4
 //
 var plugin = JSON.parse(Plugin.manifest);
 var PREFIX = plugin.id;
@@ -94,6 +94,7 @@ new page.Route(PREFIX + ":start", function (page) {
         }
     }).toString();
     
+    
     items = []
 
             json = JSON.parse(resp.match(/(\[\W+\{"id": \d+\,"url":.[\s\S]+?\W+\]),/)[1])
@@ -102,7 +103,7 @@ new page.Route(PREFIX + ":start", function (page) {
             items.push({
             channelId: json[i].id,
             title: json[i].title,
-            //icon: 'http:' + item[3],
+            icon: Plugin.path + "img/" + json[i].id+ ".png",
             stream: json[i].stream,
             date: date()
             })
@@ -117,6 +118,16 @@ new page.Route(PREFIX + ":start", function (page) {
             icon: item.icon
         });
     }
+    
+
+//var resp =http.request('http://api.peers.tv/peerstv/xml/1/')
+// var myRe = /<title>(.*)<\/title>[\S\s]+?<image>(.*)<\/image>[\S\s]+?<cn:id>(\d+)/g;
+//  var myArray;
+//  i = 0;
+//  while ((myArray = myRe.exec(resp)) !== null ) {
+//    p('wget --output-document='+myArray[3]+'.png' + ' '+ myArray[2])
+//    i++;
+//  }
 
     page.loading = false;
 
