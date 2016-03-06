@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.4.2
+// Version 0.4.3
 //
 var plugin = JSON.parse(Plugin.manifest);
 var PREFIX = plugin.id;
@@ -93,21 +93,22 @@ new page.Route(PREFIX + ":start", function (page) {
             "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
         }
     }).toString();
-  //  p(resp)
+    
     items = []
-    regExp = /(\{"id":.+?\d+,"url[\s\S]+?stream[\s\S]+?\})/g;
-    while (((m = regExp.exec(resp)) !== null)) {
 
-        item = /"id".+?(\d+).+?title.+?"([^"]+).+?src.+?"([^"]+).+?"stream.+?"([^"]+)/.exec(m)
-        items.push({
-            channelId: item[1],
-            title: item[2],
-            icon: 'http:' + item[3],
-            stream: item[4].replace(/\\\//g, "/"),
+            json = JSON.parse(resp.match(/(\[\W+\{"id": \d+\,"url":.[\s\S]+?\W+\]),/)[1])
+        for (var i in json) {
+            p(dump(json[i]))
+            items.push({
+            channelId: json[i].id,
+            title: json[i].title,
+            //icon: 'http:' + item[3],
+            stream: json[i].stream,
             date: date()
-        })
-    }
+            })
 
+           
+        }
     
     for (i = 0; i < items.length; i++) {
         item = items[i];
@@ -212,23 +213,26 @@ function e(ex) {
 }
 
 function dump(arr, level) {
-    var dumped_text = "";
-    if (!level) level = 0;
-    //The padding given at the beginning of the line.
-    var level_padding = "";
-    for (var j = 0; j < level + 1; j++) level_padding += "    ";
-    if (typeof(arr) == 'object') { //Array/Hashes/Objects
-        for (var item in arr) {
-            var value = arr[item];
-            if (typeof(value) == 'object') { //If it is an array,
-                dumped_text += level_padding + "'" + item + "' ...\n";
-                dumped_text += dump(value, level + 1);
-            } else {
-                dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
-            }
-        }
-    } else { //Stings/Chars/Numbers etc.
-        dumped_text = arr;
+  var dumped_text = "";
+  if (!level) {
+    level = 0;
+  }
+  var level_padding = "";
+  for (var j = 0; j < level + 1; j++) {
+    level_padding += "    ";
+  }
+  if (typeof arr == "object") {
+    for (var item in arr) {
+      var value = arr[item];
+      if (typeof value == "object") {
+        dumped_text += level_padding + "'" + item + "' ...\n";
+        dumped_text += dump(value, level + 1);
+      } else {
+        dumped_text += level_padding + "'" + item + "' => \"" + value + '"\n';
+      }
     }
-    return dumped_text;
+  } else {
+    dumped_text = "===>" + arr + "<===(" + typeof arr + ")";
+  }
+  return dumped_text;
 }
