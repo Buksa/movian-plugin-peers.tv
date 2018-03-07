@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// Version 0.4.5
+// Version 0.4.6
 //
 var plugin = JSON.parse(Plugin.manifest);
 var PREFIX = plugin.id;
@@ -30,6 +30,7 @@ var http = require('showtime/http');
 var XML = require('showtime/xml');
 var html = require('showtime/html');
 var io = require('native/io');
+var data ={};
 
 var tos = 'The developer has no affiliation with the sites what so ever.\n';
 tos += 'Nor does he receive money or any other kind of benefits for them.\n\n';
@@ -66,8 +67,9 @@ settings.createBool("debug", "Debug", false, function(v) {
     service.debug = v;
 });
 
-io.httpInspectorCreate('http.*\\.peers.tv.*', function(req) {
-    req.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0');
+io.httpInspectorCreate('http.*peers.tv.*', function(req) {
+    req.setHeader('User-Agent', 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 4 Build/LMY48T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.89 Mobile Safari/537.36');
+    req.setHeader('Referer','http://m.peers.tv/')
 });
 
 function date(){
@@ -86,21 +88,22 @@ new page.Route(PREFIX + ":start", function (page) {
     page.type = "directory";
     var d 
     //http://api.peers.tv/peerstv/xml/1/
-    var resp = http.request('http://peers.tv', {
+    var resp = http.request('https://m.peers.tv',{//'http://peers.tv', {
         debug: service.debug,
         method: 'GET',
         headers: {
-            "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
+            "User-Agent": 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 4 Build/LMY48T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.89 Mobile Safari/537.36'
         }
     }).toString();
-    
+    p(resp.match(/ptv.initMobile\(([^\]]+\])/)[1])
     
     items = []
 
-            json = JSON.parse(resp.match(/(\[\W+\{"id": \d+\,"url":.[\s\S]+?\W+\]),/)[1])
+            json = JSON.parse(resp.match(/ptv.initMobile\(([^\]]+\])/)[1])
         for (var i in json) {
             p(dump(json[i]))
             items.push({
+            href:json[i].href,    
             channelId: json[i].id,
             title: json[i].title,
             icon: Plugin.path + "img/" + json[i].id+ ".png",
@@ -112,10 +115,10 @@ new page.Route(PREFIX + ":start", function (page) {
         }
     
     for (i = 0; i < items.length; i++) {
-        item = items[i];
-        page.appendItem(PREFIX + ":arhivdate:" + JSON.stringify(item), "video", {
-            title: item.title,
-            icon: item.icon
+        data = items[i];
+        page.appendItem(PREFIX + ":arhivdate:" + JSON.stringify(data), "video", {
+            title: data.title,
+            icon: data.icon
         });
     }
     
@@ -132,7 +135,19 @@ new page.Route(PREFIX + ":start", function (page) {
     page.loading = false;
 
 });
-
+new page.Route(PREFIX + ":channel:(.*)", function (page, data) {
+    p(data)
+    data = JSON.parse(data);
+    p('https://m.peers.tv'+data.href)
+     var resp = http.request('https://m.peers.tv'+data.href,{
+        debug: service.debug,
+        method: 'GET',
+        headers: {
+            "User-Agent": 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 4 Build/LMY48T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.89 Mobile Safari/537.36'
+        }
+    }).toString();
+    p(resp)
+});
 new page.Route(PREFIX + ":arhivdate:(.*)", function (page, data) {
     data = JSON.parse(data);
     p(dump(data))
@@ -148,6 +163,7 @@ new page.Route(PREFIX + ":arhivdate:(.*)", function (page, data) {
             "User-Agent": 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0'
         }
     }).toString();
+    http://m.peers.tv/program/rossija/
     page.appendItem('hls:' + data.stream, 'video', {
         title: new showtime.RichText('live'),
         description: new showtime.RichText('live'),
@@ -155,21 +171,11 @@ new page.Route(PREFIX + ":arhivdate:(.*)", function (page, data) {
     });
     var jsonResp = JSON.parse(respond)
 
-    for (i in jsonResp.week) {
-        if (jsonResp.week[i].recs) {
-            data.date = jsonResp.week[i].href.match(/(\d{4}-\d{2}-\d{2})/)[1]
-            p(dump(data))
-            page.appendItem(PREFIX + ":arhivdate:" + JSON.stringify(data), 'directory', {
-                title: new showtime.RichText(jsonResp.week[i].date),
-                description: new showtime.RichText(jsonResp.week[i].date),
-                icon: data.icon
-            });
-            //code
-        }
-
-
-    }
-
+    //page.appendItem(PREFIX + ":arhiv:"+JSON.stringify(jsonResp.week), 'directory', {
+    //    title: new showtime.RichText('arhiv'),
+    //    description: new showtime.RichText('arhiv'),
+    //    icon: data.icon
+    //});
     //  
     for (i in jsonResp.telecasts) {
         item = jsonResp.telecasts[i]
@@ -211,7 +217,28 @@ new page.Route(PREFIX + ":arhivdate:(.*)", function (page, data) {
     page.loading = false;
 });
 
+new page.Route(PREFIX + ":arhiv:(.*)", function (page, json) {
+    page.loading = true;
+    page.type = 'directory';
+    p(dump(json))
+    json = JSON.parse(json);
+    p(dump(json))
 
+
+
+    for (var i =0; i < json.length; i++) {
+            p('=============')
+            
+            data.date = json[i].href.match(/(\d{4}-\d{2}-\d{2})/)[1]
+            p(dump(data))
+            page.appendItem(PREFIX + ":arhivdate:" + JSON.stringify(data), 'directory', {
+                title: new showtime.RichText(json[i].date),
+                description: new showtime.RichText(json[i].date),
+                icon: data.icon
+            });
+    }
+    page.loading = false;
+})
 
 
 function p(message) {
